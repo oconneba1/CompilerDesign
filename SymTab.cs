@@ -7,6 +7,9 @@ public class Obj { // properties of declared symbol
    public string name; // its name
    public int kind;    // var, proc or scope
    public int type;    // its type if var (undef for proc)
+   /*I added*/
+   public int sort;    //type of var - scalar or array
+   /*til here*/
    public int level;   // lexic level: 0 = global; >= 1 local
    public int adr;     // address (displacement) in scope 
    public Obj next;    // ptr to next object in scope
@@ -20,6 +23,11 @@ public class SymbolTable {
 
    const int // object kinds
       var = 0, proc = 1, scope = 2, constant = 3; 
+
+   /*I added*/   
+   const int // variable options
+      scalar = 0, array = 1;
+   /*til here*/
 
    const int // types
       undef = 0, integer = 1, boolean = 2;
@@ -119,18 +127,45 @@ public class SymbolTable {
 
 // close current sub-scope
    public void CloseSubScope() {
+      /*I added*/
+      Obj p = topScope.locals;
+      
+      while(p!=null)
+      {
+         if(p.kind == 0)
+         {
+            String theType = null;
+            if(p.type == 0)
+               theType = "undef";
+            else if(p.type == 1)
+               theType = "integer";
+            else
+               theType = "boolean";
+
+
+            if(p.level >= 1)
+            {
+               Console.WriteLine(";" + p.name + ": Local var, type: " + theType + ", address:" + p.adr);
+            }
+            
+         }
+      }
+      /*'til here*/
+
    // update next available address in enclosing scope
       topScope.outer.nextAdr = topScope.nextAdr;
    // lexic level remains unchanged
       topScope = topScope.outer;
    }
 
+   /*I added sort*/
 // create new object node in current scope
-   public Obj NewObj(string name, int kind, int type) {
+   public Obj NewObj(string name, int kind, int type, int sort) {
       Obj p, last; 
       Obj obj = new Obj();
       obj.name = name; obj.kind = kind;
-      obj.type = type; obj.level = curLevel; 
+      obj.type = type; obj.level = curLevel;
+      obj.sort = sort;
       obj.next = null; 
       p = topScope.locals; last = null;
       while (p != null) { 
@@ -143,6 +178,10 @@ public class SymbolTable {
       if (kind == var || kind == constant)
          obj.adr = topScope.nextAdr++;
          //I added following
+      if(kind == array)
+      {
+         
+      }
       if(kind == constant)
          obj.constAssigned = false;
       return obj;

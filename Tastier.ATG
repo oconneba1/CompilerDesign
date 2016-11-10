@@ -3,6 +3,10 @@ COMPILER Tastier
    const int // object kinds
       var = 0, proc = 1, scope = 2, constant = 3;
 
+   /*I added*/   
+   const int // variable options
+      scalar = 0, array = 1;
+   /*til here*/   
 
    const int // types
       undef = 0, integer = 1, boolean = 2;
@@ -216,9 +220,22 @@ SimExpr<out int reg,     //load value of SimExpr into register
 
 /*-------------------------------------------------------------------------------------------*/
 
-Stat                     (. int type; string name; Obj obj; int reg; .)
+/* added assignment to array elem */
+Stat                     (. int type; string name; Obj obj; int reg; int n; .)
 = Ident<out name>        (. obj = tab.Find(name); .)
-  ( ":="                 (.
+  (
+    ["[" 
+    number                (.
+                            //type = integer;
+                            n = Convert.ToInt32(t.val);
+                            gen.LoadConstant(reg, n);
+                          .)  
+    |
+    Ident
+
+     "]"]        
+
+   ":="                 (.
                             if ((obj.kind == var || (obj.kind == constant && !obj.constAssigned ) ))
                                 obj.constAssigned = true;
                             else
@@ -361,12 +378,26 @@ Type<out int type>
 
 /*-------------------------------------------------------------------------------------------*/
 
-VarDecl                  (. string name; int type; .)
+/*I added array decl possibility*/
+VarDecl                  (. string name; int type; int n; .)
 = Type<out type>
-  Ident<out name>        (. tab.NewObj(name, var, type); .)
-  { ","
-    Ident<out name>      (. tab.NewObj(name, var, type); .)
-  } ";"
+  (
+    Ident<out name>        (. tab.NewObj(name, var, type, scalar); .)
+    { ","
+      Ident<out name>      (. tab.NewObj(name, var, type, scalar); .)
+    } ";"
+  |
+    "["
+    number                 (.
+                            //type = integer;
+                            n = Convert.ToInt32(t.val);
+                            gen.LoadConstant(reg, n);
+                          .)
+    "]"
+    Ident<out name>        (. tab.NewObj(name, var, type, array); .)
+    ";"
+  )
+
 .
 
 /*-------------------------------------------------------------------------------------------*/
