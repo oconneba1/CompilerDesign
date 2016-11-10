@@ -3,6 +3,7 @@ using System;
 namespace Tastier { 
 
 public class Obj { // properties of declared symbol
+   public bool constAssigned;
    public string name; // its name
    public int kind;    // var, proc or scope
    public int type;    // its type if var (undef for proc)
@@ -18,7 +19,7 @@ public class Obj { // properties of declared symbol
 public class SymbolTable {
 
    const int // object kinds
-      var = 0, proc = 1, scope = 2; 
+      var = 0, proc = 1, scope = 2, constant = 3; 
 
    const int // types
       undef = 0, integer = 1, boolean = 2;
@@ -59,6 +60,46 @@ public class SymbolTable {
 
 // close current scope
    public void CloseScope() {
+      /*I added*/
+      Obj p = topScope.locals;
+      
+      while(p!=null)
+      {
+         
+         if(p.kind == 1)
+         {
+            Console.WriteLine(";" + p.name + ": Procedure, address:" + p.adr);
+         }
+         else if(p.kind == 0)
+         {
+            String theType = null;
+            if(p.type == 0)
+               theType = "undef";
+            else if(p.type == 1)
+               theType = "integer";
+            else
+               theType = "boolean";
+
+
+            if(p.level == 0)
+            {
+               Console.WriteLine(";" + p.name + ": Global var, type: " + theType + ", address:" + p.adr);
+            }
+            else if(p.level >= 1)
+            {
+               Console.WriteLine(";" + p.name + ": Local var, type: " + theType + ", address:" + p.adr);
+            }
+            
+         }
+         else if(p.kind == 3)
+         {
+            Console.WriteLine(";" + p.name + ": Constant, address:" + p.adr);
+         }
+   
+         p=p.next;
+      }
+
+      /*'til here*/
       topScope = topScope.outer;
       curLevel--;
    }
@@ -99,8 +140,11 @@ public class SymbolTable {
       }
       if (last == null)
          topScope.locals = obj; else last.next = obj;
-      if (kind == var)
+      if (kind == var || kind == constant)
          obj.adr = topScope.nextAdr++;
+         //I added following
+      if(kind == constant)
+         obj.constAssigned = false;
       return obj;
    }
 

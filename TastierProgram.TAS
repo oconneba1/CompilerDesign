@@ -4,6 +4,7 @@
 program Test {
 
    int i;
+   const int zero;
 
    void SumUp() {
       int j, sum;
@@ -29,6 +30,8 @@ program Test {
    }
 
    void main() {
+      zero := 0;
+      //zero := 2;
       write "Enter value for i (or 0 to stop): ";
       read i;
       while i > 0 {
