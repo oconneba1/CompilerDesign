@@ -6,9 +6,10 @@ public class Obj { // properties of declared symbol
    public bool constAssigned;
    public string name; // its name
    public int kind;    // var, proc or scope
+   public int sizeArray;    // sizeArray 
    public int type;    // its type if var (undef for proc)
    /*I added*/
-   public int sort;    //type of var - scalar or array
+   public int sort;    //sort of var - scalar or array
    /*til here*/
    public int level;   // lexic level: 0 = global; >= 1 local
    public int adr;     // address (displacement) in scope 
@@ -160,12 +161,13 @@ public class SymbolTable {
 
    /*I added sort*/
 // create new object node in current scope
-   public Obj NewObj(string name, int kind, int type, int sort) {
+   public Obj NewObj(string name, int kind, int type, int sort, int sizeArray) {
       Obj p, last; 
       Obj obj = new Obj();
       obj.name = name; obj.kind = kind;
       obj.type = type; obj.level = curLevel;
       obj.sort = sort;
+      obj.sizeArray = sizeArray;
       obj.next = null; 
       p = topScope.locals; last = null;
       while (p != null) { 
@@ -175,13 +177,15 @@ public class SymbolTable {
       }
       if (last == null)
          topScope.locals = obj; else last.next = obj;
-      if (kind == var || kind == constant)
+      if ( (kind == var && sort == scalar) || kind == constant)
          obj.adr = topScope.nextAdr++;
-         //I added following
-      if(kind == array)
+      if( kind == var && sort == array )
       {
-         
+         obj.adr = topScope.nextAdr;
+         topScope.nextAdr += sizeArray;
       }
+          
+         //I added following 
       if(kind == constant)
          obj.constAssigned = false;
       return obj;

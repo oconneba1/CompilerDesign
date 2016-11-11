@@ -5,7 +5,7 @@ COMPILER Tastier
 
    /*I added*/   
    const int // variable options
-      scalar = 0, array = 1;
+      scalar = 1, array = 2;
    /*til here*/   
 
    const int // types
@@ -154,7 +154,7 @@ ProcDecl<string progName>
                          (. Obj obj; string procName; .)
 = "void"
   Ident<out procName>    (.
-                            obj = tab.NewObj(procName, proc, undef);
+                            obj = tab.NewObj(procName, proc, undef, undef, undef);
                             if (procName == "main")
                                if (tab.curLevel == 0)
                                   tab.mainPresent = true;
@@ -221,20 +221,19 @@ SimExpr<out int reg,     //load value of SimExpr into register
 /*-------------------------------------------------------------------------------------------*/
 
 /* added assignment to array elem */
-Stat                     (. int type; string name; Obj obj; int reg; int n; .)
-= Ident<out name>        (. obj = tab.Find(name); .)
+Stat                     (. int type; int sort; string name; Obj obj, obj1; int reg; int reg1; int n; .)
+= 
+  Ident<out name>        (. obj = tab.Find(name); n = 0; reg1 = gen.GetRegister(); .)
   (
-    ["[" 
-    number                (.
-                            //type = integer;
+   [
+      "[" 
+        number                (.
                             n = Convert.ToInt32(t.val);
-                            gen.LoadConstant(reg, n);
+                            gen.LoadConstant(reg1, n);
                           .)  
-    |
-    Ident
 
-     "]"]        
-
+     "]"
+   ]      
    ":="                 (.
                             if ((obj.kind == var || (obj.kind == constant && !obj.constAssigned ) ))
                                 obj.constAssigned = true;
@@ -244,18 +243,34 @@ Stat                     (. int type; string name; Obj obj; int reg; int n; .)
                          .)
     Expr<out reg,
          out type> ';'   (.
-                            if (type == obj.type)
-                               if (obj.level == 0)
-                                  gen.StoreGlobal(reg, obj.adr, name);
-                               else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                            if (type == obj.type )
+                            {
+                                if(obj.sort == scalar)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreGlobal(reg, obj.adr, name);
+                                    else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                                }
+                                else if(obj.sort == array)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreIndexedGlobal(reg, obj.adr, reg1, name);
+                                    else gen.StoreIndexedLocal(reg, tab.curLevel-obj.level, obj.adr, reg1, name);
+                                }
+                            }
+                               
                          .)
-  | '(' ')' ';'          (.
+       
+     
+  | 
+  '(' ')' ';'          (.
                             if (obj.kind == proc)
                                gen.Call(name);
                             else SemErr("object is not a procedure");
                          .)
-  )
 
+  
+)
 | "if"                   (. int l1, l2; l1 = 0; .)
   Expr<out reg,
        out type>         (.
@@ -382,19 +397,19 @@ Type<out int type>
 VarDecl                  (. string name; int type; int n; .)
 = Type<out type>
   (
-    Ident<out name>        (. tab.NewObj(name, var, type, scalar); .)
+    Ident<out name>        (. tab.NewObj(name, var, type, scalar, undef); .)
     { ","
-      Ident<out name>      (. tab.NewObj(name, var, type, scalar); .)
+      Ident<out name>      (. tab.NewObj(name, var, type, scalar, undef); .)
     } ";"
   |
     "["
     number                 (.
                             //type = integer;
                             n = Convert.ToInt32(t.val);
-                            gen.LoadConstant(reg, n);
+                            //gen.LoadConstant(reg, n);
                           .)
     "]"
-    Ident<out name>        (. tab.NewObj(name, var, type, array); .)
+    Ident<out name>        (. tab.NewObj(name, var, type, array, n); .)
     ";"
   )
 
@@ -405,9 +420,9 @@ VarDecl                  (. string name; int type; int n; .)
 ConstDecl                  (. string name; int type; .)
 = "const"
   Type<out type>
-  Ident<out name>        (. tab.NewObj(name, constant, type); .)
+  Ident<out name>        (. tab.NewObj(name, constant, type, undef, undef); .)
   { ","
-    Ident<out name>      (. tab.NewObj(name, constant, type); .)
+    Ident<out name>      (. tab.NewObj(name, constant, type, undef, undef); .)
   } ";"
 .
 
