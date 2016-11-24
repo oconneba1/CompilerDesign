@@ -3,10 +3,10 @@ COMPILER Tastier
    const int // object kinds
       var = 0, proc = 1, scope = 2, constant = 3;
 
-   /*I added*/   
-   const int // variable options
+    
+   const int // variable sort 
       scalar = 1, array = 2;
-   /*til here*/   
+    
 
    const int // types
       undef = 0, integer = 1, boolean = 2;
@@ -226,11 +226,28 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
   Ident<out name>        (. obj = tab.Find(name); n = 0; reg1 = gen.GetRegister(); .)
   (
    [
-      "[" 
+      "["
+      ( 
         number                (.
                             n = Convert.ToInt32(t.val);
-                            gen.LoadConstant(reg1, n);
-                          .)  
+                            if( n >= 0 && n < (obj.sizeArray-1) )
+                              gen.LoadConstant(reg1, n);
+                            else
+                              SemErr("Array index is out of bounds");
+                          .) 
+        |
+
+        Ident<out name>        (. obj1 = tab.Find(name); 
+                                  type = obj1.type;
+                                  if (obj.kind == var && type == integer) {
+                                     if (obj.level == 0)
+                                        gen.LoadGlobal(reg1, obj1.adr, name);
+                                     else
+                                        gen.LoadLocal(reg1, tab.curLevel-obj1.level, obj1.adr, name);
+                                  }
+                                  else
+                                      SemErr("Integer variable expected.");   .) 
+      )
 
      "]"
    ]      
@@ -306,6 +323,72 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
                             gen.Branch(l1);
                             gen.Label(l2);
                          .)
+
+| "for"                   (.
+                            int l1, l2, l3;
+                            l1 = gen.NewLabel();
+                             l2 = gen.NewLabel();
+                             l3 = 0;
+                          .)
+  '('
+  Ident<out name>         (. obj = tab.Find(name); .)
+  ":="                   (.
+                            if (obj.kind != var | obj.sort != scalar)
+                               SemErr("Expecting scalar variable assignment");
+                         .)
+    Expr<out reg,
+         out type> ';'   (.
+                            if (type == obj.type )
+                            {
+                                if(obj.sort == scalar)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreGlobal(reg, obj.adr, name);
+                                    else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                                }
+                            }
+                            gen.Branch(l1);
+                            gen.Label(l2);
+                          .)
+
+
+    Ident<out name>         (. obj1 = tab.Find(name); .)
+    ":="                   (.
+                            if (obj1.kind != var | obj1.sort != scalar)
+                               SemErr("Expecting scalar variable assignment");
+                         .)
+
+    Expr<out reg,
+         out type>     (.
+                            if (type == obj1.type )
+                            {
+                                if(obj1.sort == scalar)
+                                {
+                                    if(obj1.level == 0)
+                                        gen.StoreGlobal(reg, obj1.adr, name);
+                                    else gen.StoreLocal(reg, tab.curLevel-obj1.level, obj1.adr, name);
+                                }
+                            }
+                            gen.Label(l1);
+                         .)   
+
+    Expr<out reg,
+         out type> ';'    (.
+                            if (type == boolean) {
+                               l3 = gen.NewLabel();
+                               gen.BranchFalse(l3);
+                            }
+                            else SemErr("boolean type expected");
+                         .)
+
+    ')'
+
+    Stat                  (.
+                            gen.Branch(l2);
+                            gen.Label(l3);
+                         .)
+
+
 
 | "read"
   Ident<out name> ';'    (.
