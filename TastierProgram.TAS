@@ -9,6 +9,7 @@ program Test {
 
    void SumUp() {
       int j, sum;
+      int k;
       
       void Subtract() {
          i := i - 1;
@@ -22,7 +23,14 @@ program Test {
          }
       }
       
-      myArray[1] := 3;
+      for(i := 0 ; i<10 ; i := i+1)
+      {
+         j := j + 1;
+      }
+
+      k := 3;
+      myArray[k] := 7;
+      //myArray[5] := 3;   //testing if the index out of bounds is detected
       j := i;
       sum := 0;
       Add();
@@ -33,7 +41,7 @@ program Test {
 
    void main() {
       zero := 0;
-      //zero := 2;
+      //zero := 2;   //checking that an error occurs when a constant is assigned to more than once
       write "Enter value for i (or 0 to stop): ";
       read i;
       while i > 0 {

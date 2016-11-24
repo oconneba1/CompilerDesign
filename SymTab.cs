@@ -8,9 +8,7 @@ public class Obj { // properties of declared symbol
    public int kind;    // var, proc or scope
    public int sizeArray;    // sizeArray 
    public int type;    // its type if var (undef for proc)
-   /*I added*/
    public int sort;    //sort of var - scalar or array
-   /*til here*/
    public int level;   // lexic level: 0 = global; >= 1 local
    public int adr;     // address (displacement) in scope 
    public Obj next;    // ptr to next object in scope
@@ -24,12 +22,10 @@ public class SymbolTable {
 
    const int // object kinds
       var = 0, proc = 1, scope = 2, constant = 3; 
-
-   /*I added*/   
-   const int // variable options
+  
+   const int // variable sort
       scalar = 0, array = 1;
-   /*til here*/
-
+   
    const int // types
       undef = 0, integer = 1, boolean = 2;
 
@@ -69,7 +65,6 @@ public class SymbolTable {
 
 // close current scope
    public void CloseScope() {
-      /*I added*/
       Obj p = topScope.locals;
       
       while(p!=null)
@@ -108,7 +103,7 @@ public class SymbolTable {
          p=p.next;
       }
 
-      /*'til here*/
+      
       topScope = topScope.outer;
       curLevel--;
    }
@@ -128,7 +123,7 @@ public class SymbolTable {
 
 // close current sub-scope
    public void CloseSubScope() {
-      /*I added*/
+     
       Obj p = topScope.locals;
       
       while(p!=null)
@@ -151,7 +146,7 @@ public class SymbolTable {
             
          }
       }
-      /*'til here*/
+     
 
    // update next available address in enclosing scope
       topScope.outer.nextAdr = topScope.nextAdr;
