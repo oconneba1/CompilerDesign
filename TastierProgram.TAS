@@ -9,7 +9,7 @@ program Test {
 
    void SumUp() {
       int j, sum;
-      int k;
+      int k, l;
       
       void Subtract() {
          i := i - 1;
@@ -23,14 +23,18 @@ program Test {
          }
       }
       
-      for(i := 0 ; i<10 ; i := i+1)
+      l := 5;
+
+      for(k := 0 ; k := k+1 ; k<10 )
       {
-         j := j + 1;
+         l := l + 1;
       }
+
+      l:= k<l ?k+1:k-1 ;
 
       k := 3;
       myArray[k] := 7;
-      //myArray[5] := 3;   //testing if the index out of bounds is detected
+      //myArray[5] := 3;   //# testing if the index out of bounds is detected
       j := i;
       sum := 0;
       Add();
@@ -41,13 +45,27 @@ program Test {
 
    void main() {
       zero := 0;
-      //zero := 2;   //checking that an error occurs when a constant is assigned to more than once
+      //zero := 2;   // # checking that an error occurs when a constant is assigned to more than once
       write "Enter value for i (or 0 to stop): ";
       read i;
       while i > 0 {
          SumUp();
          write "Enter value for i (or 0 to stop): ";
          read i;
+      }
+
+      switch(3)
+      {
+         case 1: i := 1;
+         Break;
+
+         case 2: i := 2;
+         Break;
+
+         case 3: i := 3;
+         Break;
+
+         default: i := 4;
       }
    }
 }

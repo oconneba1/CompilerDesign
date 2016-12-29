@@ -1,10 +1,11 @@
 COMPILER Tastier
-
+   
+   //# added constant           
    const int // object kinds
       var = 0, proc = 1, scope = 2, constant = 3;
 
     
-   const int // variable sort 
+   const int // # variable sort 
       scalar = 1, array = 2;
     
 
@@ -220,14 +221,14 @@ SimExpr<out int reg,     //load value of SimExpr into register
 
 /*-------------------------------------------------------------------------------------------*/
 
-/* added assignment to array elem */
+
 Stat                     (. int type; int sort; string name; Obj obj, obj1; int reg; int reg1; int n; .)
 = 
   Ident<out name>        (. obj = tab.Find(name); n = 0; reg1 = gen.GetRegister(); .)
   (
    [
       "["
-      ( 
+      (                       /* # For assignment to array elem. Specify array index with a number or an integer variable. */
         number                (.
                             n = Convert.ToInt32(t.val);
                             if( n >= 0 && n < (obj.sizeArray-1) )
@@ -250,16 +251,28 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
       )
 
      "]"
-   ]      
+   ]                    /* # If the ident refers to procedure or scope, then raise an error as cannot assign to these. If it's a constant ensure that assignment only occurs once. */
    ":="                 (.
-                            if ((obj.kind == var || (obj.kind == constant && !obj.constAssigned ) ))
-                                obj.constAssigned = true;
+                            if(obj.kind == proc || obj.kind == scope)
+                                SemErr("cannot assign to non variable or constant");
                             else
+                            {
+                                if( obj.kind == constant )
+                                {
+                                    if(!obj.constAssigned)
+                                        obj.constAssigned = true;
+                                    else
+                                        SemErr("cannot assign to constant more than once");
+                                }
+                                    
+                            }
                             
-                                SemErr("cannot assign to non variable");
+                                
                          .)
     Expr<out reg,
-         out type> ';'   (.
+         out type> 
+    (                       /* # If it's a scalar var, then use StoreGlobal/Local. If array var then use StoreIndexedGlobal/Local. (Use level to determine if global or local. ) */
+      ';'      (. 
                             if (type == obj.type )
                             {
                                 if(obj.sort == scalar)
@@ -277,7 +290,62 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
                             }
                                
                          .)
-       
+      |
+
+      '?'                 (. int l1, l2; l1 = 0; .)             
+
+                          (.
+                            if (type == boolean) {
+                               l1 = gen.NewLabel();
+                               gen.BranchFalse(l1);
+                            }
+                            else SemErr("boolean type expected");
+                         .)
+
+      Expr<out reg,
+         out type> ':'       (.
+                            if (type == obj.type )
+                            {
+                                if(obj.sort == scalar)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreGlobal(reg, obj.adr, name);
+                                    else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                                }
+                                else if(obj.sort == array)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreIndexedGlobal(reg, obj.adr, reg1, name);
+                                    else gen.StoreIndexedLocal(reg, tab.curLevel-obj.level, obj.adr, reg1, name);
+                                }
+                            }
+                            
+                            l2 = gen.NewLabel();
+                            gen.Branch(l2);
+                            gen.Label(l1);   
+                         .)   
+
+      Expr<out reg,
+         out type> ';'       (.
+                            if (type == obj.type )
+                            {
+                                if(obj.sort == scalar)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreGlobal(reg, obj.adr, name);
+                                    else gen.StoreLocal(reg, tab.curLevel-obj.level, obj.adr, name);
+                                }
+                                else if(obj.sort == array)
+                                {
+                                    if(obj.level == 0)
+                                        gen.StoreIndexedGlobal(reg, obj.adr, reg1, name);
+                                    else gen.StoreIndexedLocal(reg, tab.curLevel-obj.level, obj.adr, reg1, name);
+                                }
+                            }
+                            gen.Label(l2);
+                            .)
+      
+    )   
      
   | 
   '(' ')' ';'          (.
@@ -305,6 +373,55 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
       [ "else"
       Stat
       ]               	 (. gen.Label(l2); .)
+
+
+| "switch"              (. int n1,n2,l1,l2; l1 = 0; l2 = 0; ArrayList list = new ArrayList(); .)
+  
+  '('
+
+  number               (.
+                            n1 = Convert.ToInt32(t.val);
+                         .)
+  ')'
+
+  '{'
+
+  "case" 
+  number              (. n2 = Convert.ToInt32(t.val); .)
+  ':'                 (.
+                            if(n1 != n2)
+                            {
+                              l1 = gen.NewLabel();
+                              gen.Branch(l1);
+                            }
+                            //gen.LoadConstant(reg, n);
+                         .)     
+      Stat
+
+      "Break" ';'         (. l2 = gen.NewLabel(); 
+                             gen.Branch(l2); .)
+                          (. gen.Label(l1); .)
+
+  {
+   "case" 
+  number              (. n2 = Convert.ToInt32(t.val); .)
+  ':'                 (.
+                            if(n1 != n2)
+                            {
+                              l1 = gen.NewLabel();
+                              gen.Branch(l1);
+                            } 
+                          .)     
+      Stat
+
+      "Break" ';'         (. gen.Branch(l2); .)
+                          (. gen.Label(l1); .)
+  }
+
+  "default" ':'             (. gen.Label(l2); .) 
+      Stat
+
+  '}'    
 
 | "while"                (.
                             int l1, l2;
@@ -359,7 +476,7 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
                          .)
 
     Expr<out reg,
-         out type>     (.
+         out type> ';'    (.
                             if (type == obj1.type )
                             {
                                 if(obj1.sort == scalar)
@@ -373,7 +490,7 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
                          .)   
 
     Expr<out reg,
-         out type> ';'    (.
+         out type>     (.
                             if (type == boolean) {
                                l3 = gen.NewLabel();
                                gen.BranchFalse(l3);
@@ -387,7 +504,6 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
                             gen.Branch(l2);
                             gen.Label(l3);
                          .)
-
 
 
 | "read"
@@ -441,7 +557,7 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
 Tastier                  (. string progName; .)
   = "program"
   Ident<out progName>    (. tab.OpenScope(); .)
-  '{'
+  '{'                               // # added ConstDecl  
     { VarDecl | ConstDecl}          // global variables
     { ProcDecl<progName> }
                          (. tab.CloseScope(); .)
@@ -476,7 +592,7 @@ Type<out int type>
 
 /*-------------------------------------------------------------------------------------------*/
 
-/*I added array decl possibility*/
+/* # I added array decl possibility. Pass in either scalar or array to the sort parameter. */
 VarDecl                  (. string name; int type; int n; .)
 = Type<out type>
   (
@@ -500,6 +616,7 @@ VarDecl                  (. string name; int type; int n; .)
 
 /*-------------------------------------------------------------------------------------------*/
 
+/* # Allows constants to be declared. */
 ConstDecl                  (. string name; int type; .)
 = "const"
   Type<out type>

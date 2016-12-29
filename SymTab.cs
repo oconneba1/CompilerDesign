@@ -1,14 +1,15 @@
 using System;
+using System.Collections;
  
 namespace Tastier { 
 
 public class Obj { // properties of declared symbol
-   public bool constAssigned;
+   public bool constAssigned; // # Used to ensure assignment to a constant can only occur once.
    public string name; // its name
    public int kind;    // var, proc or scope
-   public int sizeArray;    // sizeArray 
+   public int sizeArray;    // # If an array is declared, this attribute is used to determine how much memory to allocate. 
    public int type;    // its type if var (undef for proc)
-   public int sort;    //sort of var - scalar or array
+   public int sort;    // # sort of var - scalar or array
    public int level;   // lexic level: 0 = global; >= 1 local
    public int adr;     // address (displacement) in scope 
    public Obj next;    // ptr to next object in scope
@@ -23,7 +24,7 @@ public class SymbolTable {
    const int // object kinds
       var = 0, proc = 1, scope = 2, constant = 3; 
   
-   const int // variable sort
+   const int // # Variable sort
       scalar = 0, array = 1;
    
    const int // types
@@ -65,13 +66,17 @@ public class SymbolTable {
 
 // close current scope
    public void CloseScope() {
-      Obj p = topScope.locals;
+
+      Obj p = topScope.locals;         // #Access the locally declared objects and iterate through them. 
       
       while(p!=null)
       {
-         
+         // #Use the kind attribute to determine if identifier refers to a procedure, variable or constant. 
+         // #If it's a variable, determine whether local or global using level attribute.
+
          if(p.kind == 1)
          {
+            // #Printing out the information about the identifier.
             Console.WriteLine(";" + p.name + ": Procedure, address:" + p.adr);
          }
          else if(p.kind == 0)
@@ -124,7 +129,7 @@ public class SymbolTable {
 // close current sub-scope
    public void CloseSubScope() {
      
-      Obj p = topScope.locals;
+      Obj p = topScope.locals;      // # Similar to the CloseScope() method, I iterate through the identifiers in scope and print out the relevant information.
       
       while(p!=null)
       {
@@ -145,6 +150,7 @@ public class SymbolTable {
             }
             
          }
+         p = p.next;
       }
      
 
@@ -154,7 +160,7 @@ public class SymbolTable {
       topScope = topScope.outer;
    }
 
-   /*I added sort*/
+   /* #I added sort*/
 // create new object node in current scope
    public Obj NewObj(string name, int kind, int type, int sort, int sizeArray) {
       Obj p, last; 
@@ -172,15 +178,16 @@ public class SymbolTable {
       }
       if (last == null)
          topScope.locals = obj; else last.next = obj;
-      if ( (kind == var && sort == scalar) || kind == constant)
+
+      if ( (kind == var && sort == scalar) || kind == constant)      //# If scalar var or constant, allocating space for 1 variable.
          obj.adr = topScope.nextAdr++;
-      if( kind == var && sort == array )
+
+      if( kind == var && sort == array )                             //# If array var, allocate space corresponding to size of array.
       {
          obj.adr = topScope.nextAdr;
          topScope.nextAdr += sizeArray;
-      }
-          
-         //I added following 
+      }     
+      //# If this is a constant, initialising constAssigned field 
       if(kind == constant)
          obj.constAssigned = false;
       return obj;
