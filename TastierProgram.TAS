@@ -8,8 +8,10 @@ program Test {
    int[4] myArray;
 
    void SumUp() {
-      int j, sum;
-      int k, l;
+      int j;
+      int sum;
+      int k;
+      int l;
       
       void Subtract() {
          i := i - 1;

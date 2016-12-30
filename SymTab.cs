@@ -25,7 +25,7 @@ public class SymbolTable {
       var = 0, proc = 1, scope = 2, constant = 3; 
   
    const int // # Variable sort
-      scalar = 0, array = 1;
+      scalar = 1, array = 2;
    
    const int // types
       undef = 0, integer = 1, boolean = 2;

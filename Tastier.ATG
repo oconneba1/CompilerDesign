@@ -375,7 +375,7 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
       ]               	 (. gen.Label(l2); .)
 
 
-| "switch"              (. int n1,n2,l1,l2; l1 = 0; l2 = 0; ArrayList list = new ArrayList(); .)
+| "switch"              (. int n1,n2,l1,l2; l1 = 0; l2 = 0; bool matchACase = false;  .)
   
   '('
 
@@ -386,41 +386,28 @@ Stat                     (. int type; int sort; string name; Obj obj, obj1; int 
 
   '{'
 
-  "case" 
-  number              (. n2 = Convert.ToInt32(t.val); .)
-  ':'                 (.
-                            if(n1 != n2)
-                            {
-                              l1 = gen.NewLabel();
-                              gen.Branch(l1);
-                            }
-                            //gen.LoadConstant(reg, n);
-                         .)     
-      Stat
-
-      "Break" ';'         (. l2 = gen.NewLabel(); 
-                             gen.Branch(l2); .)
-                          (. gen.Label(l1); .)
-
+                      (. l2 = gen.NewLabel(); .)
   {
    "case" 
   number              (. n2 = Convert.ToInt32(t.val); .)
   ':'                 (.
+                            l1 = gen.NewLabel();
                             if(n1 != n2)
                             {
-                              l1 = gen.NewLabel();
+                              //l1 = gen.NewLabel();
                               gen.Branch(l1);
                             } 
                           .)     
-      Stat
+      Stat            (. matchACase = true;  .)
 
-      "Break" ';'         (. gen.Branch(l2); .)
+      "Break" ';'         (. 
+                             gen.Branch(l2); .)
                           (. gen.Label(l1); .)
   }
 
-  "default" ':'             (. gen.Label(l2); .) 
+  "default" ':'              
       Stat
-
+                          (. gen.Label(l2); .)
   '}'    
 
 | "while"                (.
